@@ -1,0 +1,1591 @@
+#ESPECIFICACIONES
+# Unit Pixels 4 
+#Dispplay 512x512
+# Base Address 0x10000000 (global data)
+
+#-Se puede jugar con cualquier tecla menos la P, pero para comenzar es con 'W' o 'espacio'
+
+#-Para colocar pausa al juego se presiona la letra 'P'
+# y para continuar jugando se presiona 'P' de nuevo
+
+
+.data
+
+.eqv base,0x10000000
+blanco1: .word 0xFFFFFF
+blanco2: .word 0xFFFFFF
+negro: .word 0x000000
+amarillo1: .word 0xFFEF00
+amarillo2:.word 0xFFD400
+anaranjado:.word 0xFE9200
+rojo: .word 0xFF0000
+arena: .word 0xE7E66A
+azul: .word 0x0CC6DE
+verde: .word 0x1FC70D
+
+
+
+comienzox: .word 33024
+comienzoy: .word 33044
+espacio: .asciiz "\n"
+
+
+#--------------------------------
+  #TUBO
+ randomT: .word 0
+ randomT1.1: .word 0
+ booleanoRandom: .word 0
+ grosorT: .word 0
+ posicionTubo1: .word 508
+ posicionTubo2: .word 57852
+ 
+ contador_tiempo_tubos: .word 0
+ reinicio_contador: .word 0
+ 
+ randomT2: .word 0
+ randomT2.1: .word 0
+ booleanoRandom2: .word 0
+ grosorT2: .word 0
+ posicionTubo3: .word 508
+ posicionTubo4: .word 57852
+
+pregunta: .asciiz "Si desea volver a jugar ingrese (1), si no, presione 'cancel' o ingrese (0)? "
+
+#-----------------------------
+puntaje: .word 0
+
+message1: .asciiz "Ha perdido =( , su puntaje fue: "
+
+pausa: .word 0
+validador_pausa: .word 0
+
+
+.text
+
+
+#Pinta color azul el fondo__--------------------------------------------------------------------------------
+.macro blanco
+li $t0,0
+lw $t1, azul
+
+fondoblanco:
+sw $t1, base($t0)
+addi $t0,$t0,4
+blt $t0,65538,fondoblanco
+.end_macro
+
+#_-------------------------------------------------------------------------------------------------------------------
+
+
+#MACRO DE ESPACIO
+
+.macro espacio
+li $v0,4
+la $a0, espacio
+syscall
+.end_macro
+#-------------------------------------------------------------------------------
+
+
+#MACRI PARA PINTAR PIXEL
+.macro pintar_negro($inicio,$final,$color)
+
+	move $t4, $inicio
+	move $t2, $color
+
+	loop:
+
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	ble $t4,$final,loop
+.end_macro
+#------------------------------------------------------------------------------------------
+
+#MACRO QUE PINTA EL SUELO
+.macro suelo
+	li $t0,0
+	lw $t1, verde
+	addi $t0, $t0,57856
+	fondocesped:
+	sw $t1, base($t0)
+	addi $t0,$t0,4
+	blt $t0,58880,fondocesped
+	lw $t1, arena
+	fondotierra:
+	sw $t1, base($t0)
+	addi $t0,$t0,4
+	blt $t0,65534,fondotierra# 65534 es el final
+#------------------------------------------------------------------------------------------
+
+.end_macro
+
+#MACRO PINTAR PAJARO
+.macro pintar($x,$y)
+
+
+	move $s4,$x
+	move $s1,$y
+	lw $t2, negro
+
+	add $t0,$s4,$zero
+
+
+	#-------Negra
+	#----Primera linea
+
+	addi $t3,$t0,20
+	pintar_negro($t0,$t3,$t2)
+
+
+	#----Segunda linea del pajaro
+	addi $t0,$t0,504
+	addi $t3,$t0,4
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,20
+	addi $t3,$t3,20
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,8
+	addi $t3,$t3,8
+	pintar_negro($t0,$t3,$t2)
+
+	#----tercera
+	li $t3,0
+	addi $t0,$t0,476
+	add $t3,$t3,$t0
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,24
+	addi $t3,$t3,24
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+
+
+	#----Cuarta
+
+	addi $t0,$t0,468
+	addi $t3,$t0,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,12
+	addi $t3,$t3,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,8
+	addi $t3,$t3,8
+	pintar_negro($t0,$t3,$t2)
+
+	#----Quita
+	li $t3,0
+	addi $t0,$t0,460
+	add $t3,$t3,$t0
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,20
+	addi $t3,$t3,20
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,12
+	addi $t3,$t3,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,12
+	addi $t3,$t3,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,8
+	addi $t3,$t3,8
+	pintar_negro($t0,$t3,$t2)
+
+	#----Sexta
+
+
+	addi $t0,$t0,460
+	addi $t3,$t3,460
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,24
+	addi $t3,$t3,24
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,12
+	addi $t3,$t3,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+
+
+
+	#----Septima
+
+	addi $t0,$t0,460
+	addi $t3,$t3,460
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,24
+	addi $t3,$t3,24
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,16
+	addi $t3,$t0,16
+	pintar_negro($t0,$t3,$t2)
+
+
+	#----Octava
+
+	addi $t0,$t3,460
+	addi $t3,$t3,460
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,24
+	addi $t3,$t3,24
+	pintar_negro($t0,$t3,$t2)
+
+	#----Novena
+	addi $t0,$t0,460
+	addi $t3,$t3,468
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,16
+	addi $t3,$t3,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,8
+	addi $t3,$t0,16
+	pintar_negro($t0,$t3,$t2)
+
+	#----Decima
+	addi $t0,$t3,472
+	addi $t3,$t3,472
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,20
+	addi $t3,$t3,20
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,20
+	addi $t3,$t3,20
+	pintar_negro($t0,$t3,$t2)
+
+	#----11
+	addi $t0,$t0,476
+	addi $t3,$t3,480
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,16
+	addi $t3,$t0,16
+	pintar_negro($t0,$t3,$t2)
+
+	#----12
+	addi $t0,$t3,484
+	addi $t3,$t3,492
+	pintar_negro($t0,$t3,$t2)
+
+	#FIN DE LAS LINEAS NEGRAS--------------------------------------------
+
+
+	#---------Amarillaaa
+
+
+
+	lw $t2,amarillo2
+
+	add $t0,$s4,$zero
+
+	add $t3,$s1,$zero
+
+	#Linea2
+	addi $t0,$t0,512
+	addi $t3,$t0,12
+	pintar_negro($t0,$t3,$t2)
+
+
+	#Linea3
+	addi $t0,$t3,492
+	addi $t3,$t3,508
+	pintar_negro($t0,$t3,$t2)
+
+
+	#Linea4
+
+	addi $t0,$t3,504
+	addi $t3,$t3,512
+	pintar_negro($t0,$t3,$t2)
+
+	#Linea5
+
+	addi $t0,$t3,508
+	addi $t3,$t3,512
+	pintar_negro($t0,$t3,$t2)
+
+	#Linea6
+
+	addi $t0,$t3,512
+	addi $t3,$t3,516
+	pintar_negro($t0,$t3,$t2)
+
+	#Linea6
+
+	addi $t0,$t3,484
+	addi $t3,$t3,4
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t3,496
+	addi $t3,$t3,4
+	pintar_negro($t0,$t3,$t2)
+	add $t0,$t3,500
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+
+
+	#Linea7
+	add $t0,$t3,484
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+	add $t0,$t3,8
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+
+	lw $t2, amarillo1
+	#Linea8
+	add $t0,$t3,500
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+
+	#Linea9
+
+	add $t0,$t3,504
+	addi $t3,$t0,12
+	pintar_negro($t0,$t3,$t2)
+
+	#Linea10
+
+	add $t0,$t3,508
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+
+
+	#FIN DE LAS LINEAS AMARILLAS -------------------------------
+
+	#___-----------------------_)___NARANJA
+
+	lw $t2,anaranjado
+	add $t0,$s4,$zero
+	add $t3,$s1,$zero
+
+	add $t0,$t0,3604
+	addi $t3,$t0,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,508
+	addi $t3,$t3,4
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,516
+	addi $t3,$t0,12
+	pintar_negro($t0,$t3,$t2)
+
+	#-----___------- BLANCO
+	lw $t2,blanco2
+	add $t0,$s4,$zero
+	li $t3,0
+	#OJO
+	addi $t0,$t0,532
+	add $t3,$t3,$t0
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,508
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,512
+	addi $t3,$t0,4
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,500
+	addi $t3,$t0,4
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,504
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+	#ALA
+	addi $t0,$t0,-548
+	addi $t3,$t0,12
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,512
+	addi $t3,$t0,16
+	pintar_negro($t0,$t3,$t2)
+	addi $t0,$t0,516
+	addi $t3,$t0,8
+	pintar_negro($t0,$t3,$t2)
+
+
+.end_macro
+
+#PINTAR TUBERIA Y MOVERLOS ----------------------------------------------------------
+.macro tubos()
+
+	lw $t9, booleanoRandom
+	bne $t9,0,salto_bool
+	li $v0, 42   
+ 	li $a1,80
+	syscall#random
+	move $s2, $a0
+	sw $s2,randomT
+	li $t9, 1
+	sw $t9,booleanoRandom
+	salto_bool:
+
+
+	bne $t9,1,traerbooleno
+	lw $s2,randomT
+	lw $s4,grosorT
+
+	traerbooleno:
+
+
+	li $t3,0
+	lw $t2,rojo
+
+
+	bge $s4,512,mayor
+
+	li $s1,0
+	li $t0,0
+	lw $t9, posicionTubo1
+	add $t0, $t0,$t9
+
+	sub $t0,$t0,$s4
+	add $t3,$t0,$s4
+	ble $s4,84,salto_limite1.0
+	addi $t3,$t0,80
+
+	salto_limite1.0:
+	pintar_negro($t0,$t3,$t2)
+
+	salto1:
+	addi $t0,$t0,512
+	add $t3,$t0,$s4
+	ble $s4,84,salto_limite1.1
+	addi $t3,$t0,80
+
+	salto_limite1.1:
+	pintar_negro($t0,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s2,salto1
+
+	li $s1,0
+	li $t1,0
+	lw $t9,posicionTubo2
+	add $t1,$t1,$t9
+	li $s3,80
+	li $s5,0
+
+	sub $s5,$s3,$s2
+	sw $s5,randomT1.1
+	sub $t1,$t1,$s4
+	add $t3,$t1,$s4
+	ble $s4,84,salto_limite2.0
+	addi $t3,$t1,80
+	salto_limite2.0:
+	pintar_negro($t1,$t3,$t2)
+
+	salto2:
+	addi $t1,$t1,-512
+	add $t3,$t1,$s4
+	ble $s4,84,salto_limite2.1
+	addi $t3,$t1,80
+	salto_limite2.1:
+	pintar_negro($t1,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s5,salto2
+
+
+
+
+	mayor:
+	addi $s4,$s4,4
+	sw $s4,grosorT
+	
+	
+	 
+	
+
+	ble $s4,84,pintarAzul
+	lw $t2, azul
+
+	lw $t9, posicionTubo1
+	add $t0,$t9,$zero
+	sub $t0,$t0,$s4
+	addi $t3,$t0,88
+	addi $t0,$t0,88
+	pintar_negro($t0,$t3,$t2)
+	li $s1,0
+	saltoAzul:
+	addi $t0,$t0,512
+	add $t3,$t0,$zero
+	pintar_negro($t0,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s2,saltoAzul
+
+
+
+
+	lw $t9, posicionTubo2
+	add $t1,$t9,$zero
+	sub $t1,$t1,$s4
+	lw $t9,randomT1.1
+	add $s5,$zero,$t9
+	addi $t3,$t1,88
+	addi $t1,$t1,88
+	pintar_negro($t1,$t3,$t2)
+	li $s1,0
+	saltoAzul2:
+	addi $t1,$t1,-512
+	add $t3,$t1,$zero
+	pintar_negro($t1,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s5,saltoAzul2
+
+	pintarAzul:
+
+
+	ble $s4,592, reinicio
+	
+	li $s4,0
+	sw $s4, grosorT
+	sw $s4,randomT
+	sw $s4,booleanoRandom
+	reinicio:
+	
+	
+	
+	
+	
+	 lw $t9,contador_tiempo_tubos
+	 lw $s7,reinicio_contador
+	 addi $t9,$t9,1
+	 addi $s7,$s7,1
+	
+	 sw $s7,reinicio_contador
+	 sw $t9, contador_tiempo_tubos
+	
+	 
+	 lw $s7,reinicio_contador
+	 
+	 blt $s7,90,saltar_puntaje
+	 li $s7,0
+	 sw $s7,reinicio_contador
+	
+	 lw $t9, puntaje
+	 addi $t9,$t9,1
+	 
+	 sw $t9,puntaje
+	 saltar_puntaje:
+	 
+
+	 
+
+.end_macro
+
+.macro Tubos2
+
+	lw $t9, booleanoRandom2
+	bne $t9,0,salto_bool
+	li $v0, 42   
+ 	li $a1,80
+	syscall#random
+	move $s2, $a0
+	sw $s2,randomT2
+	li $t9, 1
+	sw $t9,booleanoRandom2
+	salto_bool:
+
+
+	bne $t9,1,traerbooleno
+	lw $s2,randomT2
+	lw $s4,grosorT2
+
+	traerbooleno:
+
+
+	li $t3,0
+	lw $t2,rojo
+
+
+	bge $s4,512,mayor
+
+	li $s1,0
+	li $t0,0
+	lw $t9, posicionTubo3
+	add $t0, $t0,$t9
+
+	sub $t0,$t0,$s4
+	add $t3,$t0,$s4
+	ble $s4,84,salto_limite1.0
+	addi $t3,$t0,80
+
+	salto_limite1.0:
+	pintar_negro($t0,$t3,$t2)
+
+	salto1:
+	addi $t0,$t0,512
+	add $t3,$t0,$s4
+	ble $s4,84,salto_limite1.1
+	addi $t3,$t0,80
+
+	salto_limite1.1:
+	pintar_negro($t0,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s2,salto1
+
+	li $s1,0
+	li $t1,0
+	lw $t9,posicionTubo4
+	add $t1,$t1,$t9
+	li $s3,80
+	li $s5,0
+
+	sub $s5,$s3,$s2
+	sw $s5,randomT2.1
+	sub $t1,$t1,$s4
+	add $t3,$t1,$s4
+	ble $s4,84,salto_limite2.0
+	addi $t3,$t1,80
+	salto_limite2.0:
+	pintar_negro($t1,$t3,$t2)
+
+	salto2:
+	addi $t1,$t1,-512
+	add $t3,$t1,$s4
+	ble $s4,84,salto_limite2.1
+	addi $t3,$t1,80
+	salto_limite2.1:
+	pintar_negro($t1,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s5,salto2
+
+
+
+
+	mayor:
+	addi $s4,$s4,4
+	sw $s4,grosorT2
+
+	ble $s4,84,pintarAzul
+	lw $t2, azul
+
+	lw $t9, posicionTubo3
+	add $t0,$t9,$zero
+	sub $t0,$t0,$s4
+	addi $t3,$t0,88
+	addi $t0,$t0,88
+	pintar_negro($t0,$t3,$t2)
+	li $s1,0
+	saltoAzul:
+	addi $t0,$t0,512
+	add $t3,$t0,$zero
+	pintar_negro($t0,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s2,saltoAzul
+	
+	lw $t9, posicionTubo4
+	add $t1,$t9,$zero
+	lw $t9,randomT2.1
+	add $s5,$zero,$t9
+	sub $t1,$t1,$s4
+	addi $t3,$t1,88
+	addi $t1,$t1,88
+	pintar_negro($t1,$t3,$t2)
+	li $s1,0
+	saltoAzul2:
+	addi $t1,$t1,-512
+	add $t3,$t1,$zero
+	pintar_negro($t1,$t3,$t2)
+	addi $s1, $s1,1
+	bne $s1,$s5,saltoAzul2
+
+	pintarAzul:
+	
+	ble $s4,592, reinicio
+	espacio
+	li $s4,0
+	sw $s4, grosorT2
+	sw $s4,randomT2
+	sw $s4,booleanoRandom2
+	
+	reinicio:
+
+.end_macro
+
+#--------------------------------------------------------------------------------------------
+
+
+
+
+
+
+#--------------------Macro ELIMINAR Y PINTAR EL PAJARO
+
+.macro eliminarabajo($posicion)
+	move $t5,$posicion
+	move $t4, $t5
+	lw $t2, azul
+	addi $t4,$t4,3564
+	sw $t2, base($t4)
+
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+
+	addi $t4,$t4,-512
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+
+	addi $t4,$t4,-1532
+	sw $t2, base($t4)
+.end_macro
+
+.macro eliminar_arriba($posicion)
+	move $t5,$posicion
+	move $t4, $t5
+	lw $t2, azul
+	addi $t4,$t4,-512
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+
+	addi $t4,$t4,484
+	sw $t2, base($t4)
+	addi $t4,$t4,4
+	sw $t2, base($t4)
+	addi $t4,$t4,28
+	sw $t2, base($t4)
+
+	addi $t4,$t4,476
+	sw $t2, base($t4)
+	addi $t4,$t4,40
+	sw $t2, base($t4)
+
+	addi $t4,$t4,468
+	sw $t2, base($t4)
+	addi $t4,$t4,48
+	sw $t2, base($t4)
+
+	addi $t4,$t4,460
+	sw $t2,base($t4)
+
+
+	addi $t4,$t4,1080
+	sw $t2, base($t4)
+	addi $t4,$t4,516
+	sw $t2, base($t4)
+
+
+
+
+.end_macro
+#_----------------------------------------------------------------
+
+#-------------- VALIDAR SI EL PAJARO TOCA ALGUNA TUBERIA ------
+.macro validar_bird_Arriba($x)
+	add $a0, $zero, $x
+
+
+	addi $a1,$a0,20
+	lw $t9,rojo
+	salto1:
+	lw $t7,base($a0)
+	bne $t9,$t7,saltox
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar3.
+	
+	salto_Terminar3.:
+	li $v0,10
+	syscall
+	saltox:
+	addi $a0,$a0,4
+	bne $a0,$a1,salto1
+
+
+
+
+	add $a0,$a0,484
+
+	addi $a1,$a0,4
+	lw $t9,rojo
+	salto2:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto2.2
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar4.
+	
+	salto_Terminar4.:
+	li $v0,10
+	syscall
+	salto2.2:
+	addi $a0,$a0,4
+	bne $a0,$a1,salto2
+
+
+	add $a0,$a0,28
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto3:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto3.3
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar5.
+	
+	salto_Terminar5.:
+	li $v0,10
+	syscall
+	salto3.3:
+	bne $a0,$a1,salto3
+
+
+
+	add $a0,$a0,476
+	addi $a1,$a0,0
+	lw $t9,rojo
+
+	salto4:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto4.4
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar6.
+	
+	salto_Terminar6.:
+	li $v0,10
+	syscall
+	salto4.4:
+	bne $a0,$a1,salto4
+
+
+
+	add $a0,$a0,40
+	addi $a1,$a0,0
+	lw $t9,rojo
+
+	salto5:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto5.5
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar7.
+	
+	salto_Terminar7.:
+	li $v0,10
+	syscall
+	salto5.5:
+	bne $a0,$a1,salto5
+
+
+
+	add $a0,$a0,468
+
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto6:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto6.6
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar8.
+	
+	salto_Terminar8.:
+	li $v0,10
+	syscall
+	salto6.6:
+	bne $a0,$a1,salto6
+
+
+	add $a0,$a0,52
+	addi $a1,$a0,0
+	lw $t9,rojo
+
+	salto7:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto7.7
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar9.
+	
+	salto_Terminar9.:
+	li $v0,10
+	syscall
+	salto7.7:
+	bne $a0,$a1,salto7
+
+
+
+	add $a0,$a0,512
+	addi $a1,$a0,1024
+	lw $t9,rojo
+
+	salto8:
+	lw $t7,base($a0)
+
+	bne $t9,$t7,salto8.8
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar10.
+	
+	salto_Terminar10.:
+	li $v0,10
+	syscall
+	salto8.8:
+	addi $a0,$a0,512
+	bne $a0,$a1,salto8
+
+
+
+
+	add $a0,$a0,520
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto11:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto11.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar11.
+	
+	salto_Terminar11.:
+	li $v0,10
+	syscall
+	salto11.:
+	bne $a0,$a1,salto11
+
+
+
+	add $a0,$a0,512
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto12:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto12.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar12.
+	
+	salto_Terminar12.:
+	li $v0,10
+	syscall
+	salto12.:
+	bne $a0,$a1,salto12
+
+
+
+
+	add $a0,$a0,508
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto13:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto13.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar13.
+	
+	salto_Terminar13.:
+	li $v0,10
+	syscall
+	salto13.:
+	bne $a0,$a1,salto13
+
+
+	add $a0,$a0,512
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto14:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto14.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar14.
+	
+	salto_Terminar14.:
+	li $v0,10
+	syscall
+	salto14.:
+	bne $a0,$a1,salto14
+
+	add $a0,$a0,512
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto15:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto15.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar15.
+	
+	salto_Terminar15.:
+	li $v0,10
+	syscall
+	salto15.:
+	bne $a0,$a1,salto15
+
+.end_macro
+
+
+
+#CONTINUA
+
+.macro validar_bird_Abajo($x)
+
+	addi $a0, $x, -512
+	add $a0,$a0, 24
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto1:
+	lw $t7,base($a0)
+	bne $t9,$t7,saltox
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar1
+	
+	salto_Terminar1:
+	li $v0, 10
+	syscall
+	saltox:
+	bne $a0,$a1,salto1
+
+	add $a0,$a0, 516
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto2:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto2.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar2
+	
+	salto_Terminar2:
+	li $v0, 10
+	syscall
+	salto2.:
+	bne $a0,$a1,salto2
+
+	add $a0,$a0, 516
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto3:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto3.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar3
+	
+	salto_Terminar3:
+	li $v0, 10
+	syscall
+	salto3.:
+	bne $a0,$a1,salto3
+
+	add $a0,$a0, 516
+	addi $a1,$a0,1024
+	lw $t9,rojo
+	salto4:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto4.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar4
+	
+	salto_Terminar4:
+	li $v0, 10
+	syscall
+	salto4.:
+	addi $a0,$a0,512
+	bne $a0,$a1,salto4
+
+
+	add $a0,$a0, 516
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto7:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto7.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar5
+	
+	salto_Terminar5:
+	li $v0, 10
+	syscall
+	salto7.:
+	bne $a0,$a1,salto7
+
+	add $a0,$a0, 516
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto8:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto8.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar6
+	
+	salto_Terminar6:
+	li $v0, 10
+	syscall
+	salto8.:
+	bne $a0,$a1,salto4
+
+
+	add $a0,$a0, 508
+	addi $a1,$a0,1024
+	lw $t9,rojo
+	salto9:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto9.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar7
+	
+	salto_Terminar7:
+	li $v0, 10
+	syscall
+	salto9.:
+	addi $a0, $a0, 512
+	bne $a0,$a1,salto9
+
+
+	add $a0,$a0, 492
+	addi $a1,$a0,20
+	lw $t9,rojo
+	salto10:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto10.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar8
+	
+	salto_Terminar8:
+	li $v0, 10
+	syscall
+	salto10.:
+	addi $a0, $a0,4
+	bne $a0,$a1,salto10
+
+
+	add $a0,$a0, 480
+	addi $a1,$a0,12
+	lw $t9,rojo
+	salto11:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto11.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar9
+	
+	salto_Terminar9:
+	li $v0, 10
+	syscall
+	salto11.:
+	addi $a0, $a0, 12
+	bne $a0,$a1,salto11
+
+	add $a0,$a0, -532
+	addi $a1,$a0,4
+	lw $t9,rojo
+	salto12:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto12.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar10
+	
+	salto_Terminar10:
+	li $v0, 10
+	syscall
+	salto12.:
+	add $a0, $a0, 4
+	bne $a0,$a1,salto12
+
+	add $a0,$a0, -520
+	addi $a1,$a0,0
+	lw $t9,rojo
+	salto13:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto13.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar11
+	
+	salto_Terminar11:
+	li $v0, 10
+	syscall
+	salto13.:
+
+	add $a0,$a0, -516
+	addi $a1,$a0,-4
+	lw $t9,rojo
+	salto14:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto14.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar12
+	
+	salto_Terminar12:
+	li $v0, 10
+	syscall
+	salto14.:
+	add $a0,$a0,-4
+	bne $a0,$a1,salto14
+
+	add $a0,$a0, -512
+	addi $a1,$a0,-4
+	lw $t9,rojo
+	salto15:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto15.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar13
+	
+	salto_Terminar13:
+	li $v0, 10
+	syscall
+	salto15.:
+	add $a0,$a0,-4
+	bne $a0,$a1,salto15
+
+	add $a0,$a0, -512
+	addi $a1,$a0,-4
+	lw $t9,rojo
+	salto16:
+	lw $t7,base($a0)
+	bne $t9,$t7,salto16.
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar14
+	
+	salto_Terminar14:
+	li $v0, 10
+	syscall
+	salto16.:
+	add $a0,$a0,-4
+	bne $a0,$a1,salto16
+
+
+
+.end_macro
+#---------------------------------------------------------------
+#------RETARSO DEL PROGRAMA
+.macro retraso
+
+	li $a0,0
+	li $s6,0
+	li $v0, 30
+	syscall
+	addi $s6, $a0,40
+
+.end_macro 
+#-------------------------------------
+# MENSAJE DE PUNTAJE
+.macro message
+	li $v0,56
+	la $a0, message1
+	lw $a1,puntaje
+	syscall
+	
+.end_macro
+
+#-------------------------------------
+
+
+
+#'_____---------____     COMIENZO DEL PROGRAMA
+	salto_Reinicio:
+	
+
+	sw $zero,randomT
+	sw $zero,randomT1.1
+	sw $zero,booleanoRandom
+	sw $zero,grosorT
+	li $t9, 508
+	sw $t9,posicionTubo1
+	li $t9, 57852
+	sw $t9,posicionTubo2
+ 
+	sw $zero,contador_tiempo_tubos
+	sw $zero, reinicio_contador
+ 
+	 sw $zero,randomT2
+	 sw $zero,randomT2.1
+ 	sw $zero,booleanoRandom2
+ 	sw $zero,grosorT2
+ 	li $t9, 508
+ 	sw $t9,posicionTubo3
+ 	 li $t9, 57852
+	sw $t9,posicionTubo4
+ 	sw $zero, puntaje
+	
+	sw $zero,validador_pausa
+	blanco
+	suelo
+
+	li $t0,0
+	li $t1,0
+
+	lw $a0,comienzox
+	move $s0,$a0
+
+	add $t0,$t0,$s0
+	lw $a0,comienzoy
+	move $s1,$a0
+	add $t1,$t1,$s1
+	pintar($t0,$t1)
+
+#--------------------------------------------------------------
+
+	
+	seleccion:
+	lw $t3, 0xffff0000
+	
+	bne $t3,1,seleccion
+
+	lw $t2,0xffff0004 #Posicion para el teclado
+	sw $zero, 0xffff0004
+	
+	
+	lw $t9,validador_pausa
+	bne $t9,1,saltoP
+	
+	beq $t2,112,p
+	
+	b seleccion
+	
+	saltoP:
+	
+	beq $t2,119,arri
+	
+	beq $t2,32,comi
+	
+	b seleccion
+
+
+	comi: 
+	li $t9,1
+	sw $t9, validador_pausa
+	blt $s0,51708,limite
+	message
+	li $v0,51
+	la $a0, pregunta
+	syscall
+	
+	beq $a0,1,salto_Reinicio
+	beq $a0,0,salto_Terminar
+	
+	salto_Terminar:
+	
+	
+	li $v0,10
+	syscall
+	limite:
+	addi $s0,$s0,512
+	
+	addi $s1,$s1,0
+	add $t0,$zero,$s0
+	
+        validar_bird_Abajo($t0)
+        
+	pintar($t0,$t1)
+	
+	eliminar_arriba($s0)
+	tubos
+	lw $t8, contador_tiempo_tubos
+	blt $t8, 80, salto_tubo2
+		Tubos2
+	salto_tubo2:
+	retraso
+
+	movimiento1:
+	li $v0,30
+	syscall
+	blt $a0, $s6, movimiento1
+	lw $t3,0xffff0000
+	li $t8,0
+	
+	lw $t2,0xffff0004
+	bne $t2,112,pausaP
+	b seleccion
+	pausaP:
+	
+	p:
+	sw $zero, 0xffff0004
+	beq $t3,1,arri
+	b comi
+
+
+	arri:
+	
+	addi $t8,$t8,1
+	sw $zero, 0xffff0000
+	
+	blt $s0,512,limite2
+	addi $s0,$s0,-512
+	limite2:
+	addi $s1,$s1,0
+	add $t0,$zero,$s0
+	
+	
+	
+	validar_bird_Arriba($t0)
+	blt $s0,0,limite2.1
+	pintar($t0,$t1)
+	eliminarabajo($s0)
+	limite2.1:
+
+	bne $t8,9,arri
+	lw $t3,0xffff0000
+	beq $t3,1,arri
+	b comi
+
+
+	li $v0, 10
+	syscall
